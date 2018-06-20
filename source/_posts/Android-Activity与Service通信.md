@@ -318,7 +318,7 @@ public class MyActivity extends Activity {
 ![Activity所在进程日志](5.jpg)
 值的注意的是Activity是在主线程中与Service通信，而Service却并没有在主线程通信，而是新开启了一个线程和Activity通信（TID不同）。这也印证了官方对于AIDL工具的定位，当我们需要在不同进程中实现组件通信，并且需要处理多线程问题时，才使用AIDL，不然我们还是用回简单方便的Messenger吧。
 总结:
-	1. Activity调用bindService方法，通过IBinder对象得到Service的实例，这样Activity可以直接调用到Service中的方法，如果需要Service主动通知Activity，我们还可以为其添加回调方法。
-	2. Service向Activity发送消息，可以使用广播，当然Activity要注册相应的接收器。比如Service要向多个Activity发送同样的消息的话，用这种方法就更好。
-	3. 当Activity和Service分别处在不同的应用之中时，我们可以通过使用Messenger类来完成两组件之间的基于Message机制的交流通信，使用Handler来处理发送接收的消息。
-	4. 当不仅Activity和Service所处应用不同，而且我们还需要处理多线程通信问题时，我们就需要使用AIDL来进行通信了。
+1. Activity调用bindService方法，通过IBinder对象得到Service的实例，这样Activity可以直接调用到Service中的方法，如果需要Service主动通知Activity，我们还可以为其添加回调方法。
+2. Service向Activity发送消息，可以使用广播，当然Activity要注册相应的接收器。比如Service要向多个Activity发送同样的消息的话，用这种方法就更好。
+3. 当Activity和Service分别处在不同的应用之中时，我们可以通过使用Messenger类来完成两组件之间的基于Message机制的交流通信，使用Handler来处理发送接收的消息。
+4. 当不仅Activity和Service所处应用不同，而且我们还需要处理多线程通信问题时，我们就需要使用AIDL来进行通信了。
