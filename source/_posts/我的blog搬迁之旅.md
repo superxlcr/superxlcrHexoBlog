@@ -5,7 +5,7 @@ tags:
 categories:
   - 杂项
 date: 2018-03-24 00:21:12
-description: 前言、搭建本地hexo环境、编写博客、创建 github io repository、关联github并部署
+description: 前言、搭建本地hexo环境、编写博客、创建 github io repository、关联github并部署、博客搬迁工具
 ---
 # 前言
 本来博客是搭在csdn上面的，也就是当个云记事本来使用  
@@ -81,3 +81,9 @@ hexo d
 hexo d -g
 ```
 所有的搭建博客步骤已记录完毕，接下来就开始进行博客搬迁的工作吧
+
+# 博客搬迁工具
+
+本人之前的博客都是在csdn写的，在刚开始搬迁博客的时候，手动搬迁了一阵子，发现是真滴累……
+后面通过python写了个csdn博客转换工具，能把csdn博客转换为hexo适用的markdonw形式
+git地址如下：https://github.com/superxlcr/csdnBlogTranslator
