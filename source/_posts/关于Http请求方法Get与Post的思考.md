@@ -1,6 +1,6 @@
 ---
 title: 关于HTTP请求方法GET与POST的思考
-tags: [计算机网络,HTTP]
+tags: [计算机网络,Http]
 categories: [计算机网络]
 date: 2018-04-15 15:22:33
 description: HTTP简述、GET方法、POST方法、GET方法与POST方法对比
