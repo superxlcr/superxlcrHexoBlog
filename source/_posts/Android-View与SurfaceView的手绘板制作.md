@@ -1,6 +1,6 @@
 ---
 title: Android View与SurfaceView的手绘板制作
-tags: [android,view,练习项目]
+tags: [android,view,应用]
 categories: [android]
 date: 2016-03-21 21:53:59
 description: 自定义VIew实现手绘板、SurfaceView实现手绘板

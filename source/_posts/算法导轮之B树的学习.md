@@ -1,6 +1,6 @@
 ---
 title: 算法导轮之B树的学习
-tags: [算法,算法导论]
+tags: [算法]
 categories: [算法]
 date: 2016-04-06 12:44:50
 description: 引言、B树的定义、B树的插入、B树的删除

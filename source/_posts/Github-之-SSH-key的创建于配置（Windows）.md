@@ -1,6 +1,6 @@
 ---
 title: Github 之 SSH key的创建与配置（Windows）
-tags: [git,ssh]
+tags: [git]
 categories: [git]
 date: 2016-05-09 17:47:22
 description: （翻译）Github 之 SSH key的创建与配置

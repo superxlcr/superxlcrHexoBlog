@@ -1,9 +1,7 @@
 ---
 title: 我的blog搬迁之旅
-tags:
-  - 博客
-categories:
-  - 杂项
+tags: [博客、杂项]
+categories: [杂项]
 date: 2018-03-24 00:21:12
 description: 前言、搭建本地hexo环境、编写博客、创建 github io repository、关联github并部署、博客搬迁工具
 ---

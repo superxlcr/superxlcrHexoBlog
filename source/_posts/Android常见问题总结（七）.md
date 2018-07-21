@@ -1,0 +1,122 @@
+---
+title: Android常见问题总结（七）
+tags: [android,基础知识]
+categories: [android]
+date: 2018-01-08 21:24:18
+description: 如何判断当前网络类型、关于Android resources资源的问题、adb shell dumpsys 指令使用
+---
+上一篇博客传送门：[Android常见问题总结（六）](/2017/08/08/Android常见问题总结（六）/)
+
+
+# 如何判断当前网络类型
+
+想要判断Android设备当前的网络类型，我们可以使用ConnectivityManager类
+
+通过ConnectivityManager#getActiveNetworkInfo我们可以获取NetworkInfo类，它包含了当前网络相关的信息
+我们可以通过NetworkInfo#isAvailable来判断是否连上了网络
+通过NetworkInfo#getType来判断当前网络是否wifi类型
+
+至于移动网络的类型，我们可以通过NetworkInfo#getSubtype获取网络的类型，然后通过TelephonyManager#getNetworkClass来判断当前的网络究竟是那种具体类型（不过这个方法是hide，估计是官方觉得不准确就不公开了，我们可以打开源码把该方法拷贝出来使用）
+具体判断网络类型的代码如下：
+
+
+```java
+    public static final String NETWORK_WIFI = "Wifi";
+    public static final String NETWORK_2G = "2G";
+    public static final String NETWORK_3G = "3G";
+    public static final String NETWORK_4G = "4G";
+    public static final String NETWORK_OTHER = "Other";
+    public static final String NETWORK_NONE = "None";
+	
+	/**
+     * 获取当前网络类型
+     * @param context 上下文
+     * @return 网络类型
+     *
+     * @see #NETWORK_NONE
+     * @see #NETWORK_WIFI
+     * @see #NETWORK_2G
+     * @see #NETWORK_3G
+     * @see #NETWORK_4G
+     * @see #NETWORK_OTHER
+     */
+    public static String getNetworkDetailType(Context context) {
+        if (context == null) {
+            return NETWORK_NONE;
+        }
+        try {
+            ConnectivityManager manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo info = manager.getActiveNetworkInfo();
+            // 判断是否无网络
+            if (info == null || !info.isAvailable()) {
+                return NETWORK_NONE;
+            }
+            // 是否wifi
+            if (info.getType() == ConnectivityManager.TYPE_WIFI) {
+                return NETWORK_WIFI;
+            }
+            /**
+             * 判断移动网络类型，可见
+             * @see TelephonyManager#getNetworkClass
+             */
+            switch (info.getSubtype()) {
+                case TelephonyManager.NETWORK_TYPE_GPRS:
+                case TelephonyManager.NETWORK_TYPE_EDGE:
+                case TelephonyManager.NETWORK_TYPE_CDMA:
+                case TelephonyManager.NETWORK_TYPE_1xRTT:
+                case TelephonyManager.NETWORK_TYPE_IDEN:
+                    return NETWORK_2G;
+                case TelephonyManager.NETWORK_TYPE_UMTS:
+                case TelephonyManager.NETWORK_TYPE_EVDO_0:
+                case TelephonyManager.NETWORK_TYPE_EVDO_A:
+                case TelephonyManager.NETWORK_TYPE_HSDPA:
+                case TelephonyManager.NETWORK_TYPE_HSUPA:
+                case TelephonyManager.NETWORK_TYPE_HSPA:
+                case TelephonyManager.NETWORK_TYPE_EVDO_B:
+                case TelephonyManager.NETWORK_TYPE_EHRPD:
+                case TelephonyManager.NETWORK_TYPE_HSPAP:
+                    return NETWORK_3G;
+                case TelephonyManager.NETWORK_TYPE_LTE:
+                    return NETWORK_4G;
+                default:
+                    return NETWORK_OTHER;
+            }
+        } catch (Exception e) {
+            L.exception(e);
+        }
+        return NETWORK_NONE;
+    }
+```
+
+
+
+
+
+
+# 关于Android resources资源的问题
+
+可以参考官方文档解决问题：https://developer.android.com/guide/topics/resources/overview.html
+
+
+
+
+
+# adb shell dumpsys 指令使用
+
+该命令用于打印出当前系统信息，默认打印出设备中所有service的信息，可以在命令后面加指定的service name.
+
+有两种方法可以查看service list:
+- adb shell dumpsys：输出信息的开始部分就是所有运行的service
+- adb shell service list
+
+只要我们在指令后添加对应service name，就能查看指定service的信息：
+
+adb shell dumpsys activity （查看activity堆栈相关信息）
+adb shell dumpsys display （查看显示相关信息，可以查看分辨率）
+
+
+其中，有些service还可以带上额外的参数，我们可以使用 -h 来查看帮助信息：
+adb shell dumpsys activity -h （可以查到top等参数的用法）
+
+
+

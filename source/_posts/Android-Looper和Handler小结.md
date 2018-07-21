@@ -1,6 +1,6 @@
 ---
 title: Android Looper和Handler小结
-tags: [android,thread,handler]
+tags: [android]
 categories: [android]
 date: 2016-03-08 17:17:39
 description: Looper类分析、Handler类分析、HandlerThread的使用
