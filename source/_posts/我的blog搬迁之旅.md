@@ -84,4 +84,4 @@ hexo d -g
 
 本人之前的博客都是在csdn写的，在刚开始搬迁博客的时候，手动搬迁了一阵子，发现是真滴累……
 后面通过python写了个csdn博客转换工具，能把csdn博客转换为hexo适用的markdonw形式
-git地址如下：https://github.com/superxlcr/csdnBlogTranslator
+git地址如下：https://github.com/superxlcr/blogTranslator
