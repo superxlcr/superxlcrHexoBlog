@@ -1,0 +1,98 @@
+#!/bin/sh
+
+hook_tools_dir="picCompressGitHook/"
+hook_commit_message="[#0]this commit is to compress picture by post-commit hook"
+
+# if true, that means recently commit is by post-commit hook, just exit
+if [ "$(git log -1 HEAD --pretty="%s")" = "$hook_commit_message" ]
+then
+	exit 0
+fi
+
+# this is copy from sample
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+	against=HEAD~1
+else
+	# Initial commit: diff against an empty tree object
+	against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+fi
+
+# check the switch
+no_compress_pic=$(git config --bool hooks.nocompresspic)
+if [ "$no_compress_pic" = "true" ]
+then
+	echo "no compress pic after commit"
+	exit 0
+fi
+
+close_hint="if you want to disable pic compress, you can disable switch : \ngit config hooks.nocompresspic true"
+max_quality=100
+min_quality=80
+png_suffix="-compress.png"
+
+# get pic to compress
+diff_item_array=($(git diff $against --name-only --diff-filter=AM HEAD))
+pic_array=()
+counter=0
+for diff_item in ${diff_item_array[@]}
+do
+	if [ $(expr match "$diff_item" ".*\.[p|j][n|p]g$") -gt 0 ]
+	then
+		pic_array[counter]=$diff_item
+		let counter++
+	fi
+done
+
+# check have pic to compress and compress tools
+if [ ! ${#pic_array[@]} -gt 0 ]
+then
+	echo "this commit don't have pic to compress, just exit"
+	exit 0
+elif [ ! -f $hook_tools_dir"pngquant-windows" ] || [ ! -f $hook_tools_dir"jpegoptim-windows" ] # pwd is root project dir
+then
+	echo "stop compress pic !"
+	echo "you don't have pngquant-windows and jpegoptim-windows in the $(pwd)/$hook_tools_dir dir !"
+	echo -e $close_hint
+	exit 0
+fi
+
+# compress pic
+echo "there is ${#pic_array[@]} pic going to compress"
+echo -e "\n###################################################\n"
+
+compress_success=0
+for pic in ${pic_array[@]}
+do
+	if [ $(expr match "$pic" ".*\.png$") -gt 0 ]
+	then
+		# png
+		png_compress=${pic%\.*}$png_suffix
+		"./"$hook_tools_dir"pngquant-windows" --skip-if-larger --ext $png_suffix --quality $min_quality-$max_quality -f --strip $pic >/dev/null 2>&1
+		if [ -f $png_compress ]
+		then
+			mv -f $png_compress $pic
+			echo "compress png pic : ${pic##*/} success"
+			compress_success=1
+		else
+			echo "compress png pic : ${pic##*/} fail"
+		fi
+	else
+		# jpg
+		"./"$hook_tools_dir"jpegoptim-windows" -m$max_quality -o --all-normal $pic >/dev/null 2>&1
+		echo "compress jpg pic : ${pic##*/} finish"
+		compress_success=1
+	fi
+done
+
+echo -e "\n###################################################\n"
+
+# do commit
+if [ $compress_success == 1 ]
+then
+	echo "some compress success , do commit !"
+	git add .
+	git commit -m "$hook_commit_message"
+else
+	echo "no pic compress success, abort commit !"
+fi
