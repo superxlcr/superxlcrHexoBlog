@@ -76,6 +76,8 @@ git hook 的代码如下：
 ```sh
 #!/bin/sh
 
+# version 1.3
+
 hook_tools_dir="picCompressGitHook/"
 hook_commit_message="[#0]this commit is to compress picture by post-commit hook"
 
@@ -133,6 +135,17 @@ then
 	exit 0
 fi
 
+# check whether need to stash old uncommit file
+working_file_array=$(git diff --name-only)
+cached_file_array=$(git diff --cached --name-only)
+git_need_stash_pop=0
+if [ ${#working_file_array[@]} -gt 0 ] || [ ${#cached_file_array[@]} -gt 0 ]
+then
+	echo "there are some files not added to commit, do git stash"
+	git stash
+	git_need_stash_pop=1
+fi
+
 # compress pic
 echo "there is ${#pic_array[@]} pic going to compress"
 echo -e "\n###################################################\n"
@@ -173,6 +186,12 @@ else
 	echo "no pic compress success, abort commit !"
 fi
 
+# stash pop old file
+if [ $git_need_stash_pop == 1 ]
+then
+	echo "do git stash pop to get old files"
+	git stash pop
+fi
 ```
 
 目前由于博主只编译了windows的pngquant以及jpegoptim压缩工具，因此在git hook 中只处理了pngquant-windows以及jpegoptim-windows两款工具，并没有处理不同平台的逻辑
