@@ -49,9 +49,10 @@ ps：如果出现错误，请尝试以管理员身份运行Cmder
 set LANG=zh_CN.UTF-8
 ```
 
+# 添加新的命令行控制台
 
-
-
-
+当我们安装了新的命令行控制台时，我们可以通过
+Settings(快捷键：win + alt + p)里面的Startup里面的Tasks选项的Add/refresh default tasks来添加
+![增加新命令行按钮](1.png)
 
 
