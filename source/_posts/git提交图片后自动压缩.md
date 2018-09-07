@@ -76,7 +76,7 @@ git hook 的代码如下：
 ```sh
 #!/bin/sh
 
-# version 1.3
+# version 1.4
 
 hook_tools_dir="picCompressGitHook/"
 hook_commit_message="[#0]this commit is to compress picture by post-commit hook"
@@ -139,9 +139,18 @@ fi
 working_file_array=$(git diff --name-only)
 cached_file_array=$(git diff --cached --name-only)
 git_need_stash_pop=0
-if [ ${#working_file_array[@]} -gt 0 ] || [ ${#cached_file_array[@]} -gt 0 ]
+need_stash_file_count=0
+for item in ${working_file_array[@]}
+do
+	let need_stash_file_count++
+done
+for item in ${cached_file_array[@]}
+do
+	let need_stash_file_count++
+done
+if [ $need_stash_file_count -gt 0 ]
 then
-	echo "there are some files not added to commit, do git stash"
+	echo "there are $$need_stash_file_count files not added to commit, do git stash"
 	git stash
 	git_need_stash_pop=1
 fi
