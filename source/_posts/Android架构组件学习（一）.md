@@ -2,7 +2,7 @@
 title: Android架构组件学习（一）
 tags: []
 categories: []
-description: 前言、ViewModel
+description: 前言、ViewModel、Room、LiveData
 date: 2018-10-09 21:17:00
 ---
 
