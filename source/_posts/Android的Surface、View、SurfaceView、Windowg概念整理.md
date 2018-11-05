@@ -3,7 +3,7 @@ title: Android的Surface、View、SurfaceView、Window概念整理
 tags: [android,view]
 categories: [android]
 date: 2018-10-23 19:35:39
-description: BufferQueue、SurfaceFlinger、Surface、View
+description: BufferQueue、SurfaceFlinger、Surface、View、SurfaceView
 ---
 
 最近了解了一下Android中几个关于视图的概念：Surface、View、SurfaceView与Window，在此进行一下总结整理
