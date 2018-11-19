@@ -3,7 +3,7 @@ title: Android严苛模式StrictMode使用详解
 tags: [android,内存,应用]
 categories: [android]
 date: 2017-07-15 16:48:01
-description: （转载）StrictMode具体能检测什么、工作原理、常见用法、查看报告结果、ThreadPolicy 详解、VMPolicy 详解、其他操作、注意事项
+description: （转载）StrictMode具体能检测什么、工作原理、常见用法、查看报告结果、ThreadPolicy 详解、VMPolicy 详解、其他操作、注意事项、补充
 ---
 
 
@@ -376,7 +376,85 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 # 其他操作
 除了通过日志查看之外，我们也可以在开发者选项中开启严格模式，开启之后，如果主线程中有执行时间长的操作，屏幕则会闪烁，这是一个更加直接的方法。 
 ![开发者模式_pic9](7.jpg)
+
 # 注意事项
 - 只在开发阶段启用StrictMode，发布应用或者release版本一定要禁用它。
 - 严格模式无法监控JNI中的磁盘IO和网络请求。
 - 应用中并非需要解决全部的违例情况，比如有些IO操作必须在主线程中进行。
+
+# 补充
+最近博主在使用StrictMode扫描UI线程文件io操作的时候，发现了一些问题：
+当博主在Application#onCreate方法中开启了相应的StrictMode#ThreadPolicy策略后，却发现没有任何的效果
+通过StrictMode#getThreadPolicyMask打印设置策略后的标志位，发现在Application设置后，标志位会有相应的改动，不过在首个启动的Activity#onCreate中打印时，标志位却又变回原来的设置了
+也就是说在Application#onCreate方法之后，首个Activity#onCreate方法之前，StrictMode#ThreadPolicy的策略又被改动回来了
+在查阅了相关源码后，在ActivityThread中发现了如下代码：
+```java
+private void handleBindApplication(AppBindData data) {
+	...
+
+	// Allow disk access during application and provider setup. This could
+	// block processing ordered broadcasts, but later processing would
+	// probably end up doing the same disk access.
+	Application app;
+	final StrictMode.ThreadPolicy savedPolicy = StrictMode.allowThreadDiskWrites();
+	final StrictMode.ThreadPolicy writesAllowedPolicy = StrictMode.getThreadPolicy();
+	try {
+		// If the app is being launched for full backup or restore, bring it up in
+		// a restricted environment with the base application class.
+		app = data.info.makeApplication(data.restrictedBackupMode, null);
+
+		// Propagate autofill compat state
+		app.setAutofillCompatibilityEnabled(data.autofillCompatibilityEnabled);
+
+		mInitialApplication = app;
+
+		// don't bring up providers in restricted mode; they may depend on the
+		// app's custom Application class
+		if (!data.restrictedBackupMode) {
+			if (!ArrayUtils.isEmpty(data.providers)) {
+				installContentProviders(app, data.providers);
+				// For process that contains content providers, we want to
+				// ensure that the JIT is enabled "at some point".
+				mH.sendEmptyMessageDelayed(H.ENABLE_JIT, 10*1000);
+			}
+		}
+
+		// Do this after providers, since instrumentation tests generally start their
+		// test thread at this point, and we don't want that racing.
+		try {
+			mInstrumentation.onCreate(data.instrumentationArgs);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(
+				"Exception thrown in onCreate() of "
+				+ data.instrumentationName + ": " + e.toString(), e);
+		}
+		try {
+			// 这里回调Application#onCreate，通常在此处进行StrictMode相关设置
+			mInstrumentation.callApplicationOnCreate(app);
+		} catch (Exception e) {
+			if (!mInstrumentation.onException(app, e)) {
+				throw new RuntimeException(
+				  "Unable to create application " + app.getClass().getName()
+				  + ": " + e.toString(), e);
+			}
+		}
+	} finally {
+		// 如果targetSdk小于27，把StrictMode改为savedPolicy，即允许disk io出现在UI线程
+		// If the app targets < O-MR1, or doesn't change the thread policy
+		// during startup, clobber the policy to maintain behavior of b/36951662
+		if (data.appInfo.targetSdkVersion < Build.VERSION_CODES.O_MR1
+				|| StrictMode.getThreadPolicy().equals(writesAllowedPolicy)) {
+			StrictMode.setThreadPolicy(savedPolicy);
+		}
+	}
+
+	...
+}
+```
+
+省略了部分无关代码，在43行，ActivityThread回调了我们Application#onCreate方法，我们也通常在此设置了StrictMode相关的设置
+然而，在第57行会判断，如果我们app的targetSdk小于27，则会重新把StrictMode设置为允许disk io出现在UI线程
+为啥会实现这样子，博主表示也不清楚，可能为官方的问题
+博主试过在第一个启动的Activity#onCreate重新打开后，会导致主线程使用SharedPreferences以及调用Activity#setContentView等也会出现警告log，虽然误判有一些，不过感觉还是可以使用的
+Ps：博主的compileSdkVersion以及buildToolsVersion均为28
