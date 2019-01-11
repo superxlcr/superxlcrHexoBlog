@@ -3,7 +3,7 @@ title: Android常见问题总结（七）
 tags: [android,基础知识]
 categories: [android]
 date: 2018-01-08 21:24:18
-description: 如何判断当前网络类型、关于Android resources资源的问题、adb shell dumpsys 指令使用
+description: 如何判断当前网络类型、关于Android resources资源的问题、adb shell dumpsys 指令使用、ListView中getView反复调用问题
 ---
 上一篇博客传送门：[Android常见问题总结（六）](/2017/08/08/Android常见问题总结（六）/)
 
@@ -118,5 +118,13 @@ adb shell dumpsys display （查看显示相关信息，可以查看分辨率）
 其中，有些service还可以带上额外的参数，我们可以使用 -h 来查看帮助信息：
 adb shell dumpsys activity -h （可以查到top等参数的用法）
 
+# ListView中getView反复调用问题
 
+最近在项目中需要在ListView中实现计时器
+用TextView配合CountDownTimer实现完成后发现界面卡顿严重，通过debug发现ListView的Adapter在疯狂的调用getView方法
+猜测是由于CountDownTimer定时使用TextView#setText刷新文案，而TextView大小为wrap_content导致界面需要重新测量布局，导致ListView会反复调用Adapter#getView
+最终通过把TextView大小设为定值解决问题
 
+此次顺便发现了刚进入页面时，Adapter#getView对于相同的position会调用多次的问题
+猜测也是ListView需要测量反复调用Adapter#getView所致，通过把ListView在xml中的高度由wrap_content改为match_parent或定值解决问题
+最终刚进入页面时，相同的position只会调用一次Adapter#getView
