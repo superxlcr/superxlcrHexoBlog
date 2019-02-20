@@ -3,7 +3,7 @@ title: LeakCanary，30分钟从入门到精通
 tags: [android,java,内存]
 categories: [java]
 date: 2018-12-18 20:12:29
-description: （转载）简述、用法简介、核心类分析、结论
+description: （转载）简述、用法简介、核心类分析、结论、补充
 ---
 
 本文转载自：https://www.jianshu.com/p/1e7e9b576391
@@ -246,3 +246,15 @@ org.eclipse.mat
 答： 该版本采用eclipse.Mat来分析泄漏详细，从GCRoot开始逐步生成引用轨迹。
 
 通过整篇文章分析，你还在疑惑么？
+
+# 补充
+
+最近微信开源了[Matrix](https://github.com/Tencent/matrix)性能检测工具，里面也使用到了LeakCanary，不过同时还进行了一定的改进，主要有下面几点：
+
+1. GC不一定成功问题，改进为：通过一个一定能被回收的“哨兵”对象，用来确认系统确实进行了GC
+2. 对象加入弱引用ReferenceQueue有延迟问题，改进为：直接通过WeakReference#get()判断对象是否被成功回收
+3. 判断Activity是否可回收时其正好还被局部变量持有引起误判，改进为：多次判断，且重复创建才确认泄露
+4. 改进了相同Activity重复泄露多次提醒的问题
+5. 对生成的hprof文件进行了一定的裁剪
+
+详情可参考文章：https://cloud.tencent.com/developer/article/1379397
