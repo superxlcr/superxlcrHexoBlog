@@ -2,8 +2,8 @@
 title: Android常见问题总结（七）
 tags: [android,基础知识]
 categories: [android]
-date: 2018-01-08 21:24:18
-description: 如何判断当前网络类型、关于Android resources资源的问题、adb shell dumpsys 指令使用、ListView中getView反复调用问题
+date: 2019-03-29 21:24:18
+description: 如何判断当前网络类型、关于Android resources资源的问题、adb shell dumpsys 指令使用、ListView中getView反复调用问题、ViewTreeObserver造成内存泄漏问题
 ---
 上一篇博客传送门：[Android常见问题总结（六）](/2017/08/08/Android常见问题总结（六）/)
 
@@ -128,3 +128,188 @@ adb shell dumpsys activity -h （可以查到top等参数的用法）
 此次顺便发现了刚进入页面时，Adapter#getView对于相同的position会调用多次的问题
 猜测也是ListView需要测量反复调用Adapter#getView所致，通过把ListView在xml中的高度由wrap_content改为match_parent或定值解决问题
 最终刚进入页面时，相同的position只会调用一次Adapter#getView
+
+# ViewTreeObserver造成内存泄漏问题
+
+ViewTreeObserver的一般用法如下：
+```java
+// 添加监听器
+view.getViewTreeObserver().addXXXListener(...);
+// 移除监听器
+view.getViewTreeObserver().removeXXXListener(...);
+```
+
+如果我们添加了监听器，而没有在View detach之前执行相应的移除方法，则会造成内存泄漏
+下面我们一起来看下具体的源码了解原因：
+View#getViewTreeObserver
+```java
+public ViewTreeObserver getViewTreeObserver() {
+	if (mAttachInfo != null) {
+		return mAttachInfo.mTreeObserver;
+	}
+	if (mFloatingTreeObserver == null) {
+		mFloatingTreeObserver = new ViewTreeObserver(mContext);
+	}
+	return mFloatingTreeObserver;
+}
+```
+
+当view还没有attach到window的时候，其mAttachInfo为空，此时我们添加的监听器会被保存在mFloatingTreeObserver中
+
+View#dispatchAttachedToWindow
+```java
+void dispatchAttachedToWindow(AttachInfo info, int visibility) {
+	mAttachInfo = info;
+	...
+	if (mFloatingTreeObserver != null) {
+		info.mTreeObserver.merge(mFloatingTreeObserver);
+		mFloatingTreeObserver = null;
+	}
+
+	...
+}
+```
+
+第5行可以看到attach到window的时候，会执行merge方法，把监听器合并到mAttachInfo中
+
+ViewTreeObserver#merge
+```java
+    void merge(ViewTreeObserver observer) {
+        if (observer.mOnWindowAttachListeners != null) {
+            if (mOnWindowAttachListeners != null) {
+                mOnWindowAttachListeners.addAll(observer.mOnWindowAttachListeners);
+            } else {
+                mOnWindowAttachListeners = observer.mOnWindowAttachListeners;
+            }
+        }
+
+        if (observer.mOnWindowFocusListeners != null) {
+            if (mOnWindowFocusListeners != null) {
+                mOnWindowFocusListeners.addAll(observer.mOnWindowFocusListeners);
+            } else {
+                mOnWindowFocusListeners = observer.mOnWindowFocusListeners;
+            }
+        }
+
+        if (observer.mOnGlobalFocusListeners != null) {
+            if (mOnGlobalFocusListeners != null) {
+                mOnGlobalFocusListeners.addAll(observer.mOnGlobalFocusListeners);
+            } else {
+                mOnGlobalFocusListeners = observer.mOnGlobalFocusListeners;
+            }
+        }
+
+        if (observer.mOnGlobalLayoutListeners != null) {
+            if (mOnGlobalLayoutListeners != null) {
+                mOnGlobalLayoutListeners.addAll(observer.mOnGlobalLayoutListeners);
+            } else {
+                mOnGlobalLayoutListeners = observer.mOnGlobalLayoutListeners;
+            }
+        }
+
+        if (observer.mOnPreDrawListeners != null) {
+            if (mOnPreDrawListeners != null) {
+                mOnPreDrawListeners.addAll(observer.mOnPreDrawListeners);
+            } else {
+                mOnPreDrawListeners = observer.mOnPreDrawListeners;
+            }
+        }
+
+        if (observer.mOnDrawListeners != null) {
+            if (mOnDrawListeners != null) {
+                mOnDrawListeners.addAll(observer.mOnDrawListeners);
+            } else {
+                mOnDrawListeners = observer.mOnDrawListeners;
+            }
+        }
+
+        if (observer.mOnTouchModeChangeListeners != null) {
+            if (mOnTouchModeChangeListeners != null) {
+                mOnTouchModeChangeListeners.addAll(observer.mOnTouchModeChangeListeners);
+            } else {
+                mOnTouchModeChangeListeners = observer.mOnTouchModeChangeListeners;
+            }
+        }
+
+        if (observer.mOnComputeInternalInsetsListeners != null) {
+            if (mOnComputeInternalInsetsListeners != null) {
+                mOnComputeInternalInsetsListeners.addAll(observer.mOnComputeInternalInsetsListeners);
+            } else {
+                mOnComputeInternalInsetsListeners = observer.mOnComputeInternalInsetsListeners;
+            }
+        }
+
+        if (observer.mOnScrollChangedListeners != null) {
+            if (mOnScrollChangedListeners != null) {
+                mOnScrollChangedListeners.addAll(observer.mOnScrollChangedListeners);
+            } else {
+                mOnScrollChangedListeners = observer.mOnScrollChangedListeners;
+            }
+        }
+
+        if (observer.mOnWindowShownListeners != null) {
+            if (mOnWindowShownListeners != null) {
+                mOnWindowShownListeners.addAll(observer.mOnWindowShownListeners);
+            } else {
+                mOnWindowShownListeners = observer.mOnWindowShownListeners;
+            }
+        }
+
+        observer.kill();
+    }
+```
+
+分析过Activity的显示流程我们可以知道，这个attachInfo实际上是由ViewRootImpl来管理的，因此最终所有的监听器会被merge合并到ViewRootImpl中
+由于ViewRootImpl一般而言生命周期都是长于普通的View，而View从window执行detach的时候，我们可以看到其实是没有移除这些监听器的
+```java
+void dispatchDetachedFromWindow() {
+	AttachInfo info = mAttachInfo;
+	if (info != null) {
+		int vis = info.mWindowVisibility;
+		if (vis != GONE) {
+			onWindowVisibilityChanged(GONE);
+			if (isShown()) {
+				// Invoking onVisibilityAggregated directly here since the subtree
+				// will also receive detached from window
+				onVisibilityAggregated(false);
+			}
+		}
+	}
+
+	onDetachedFromWindow();
+	onDetachedFromWindowInternal();
+
+	InputMethodManager imm = InputMethodManager.peekInstance();
+	if (imm != null) {
+		imm.onViewDetachedFromWindow(this);
+	}
+
+	ListenerInfo li = mListenerInfo;
+	final CopyOnWriteArrayList<OnAttachStateChangeListener> listeners =
+			li != null ? li.mOnAttachStateChangeListeners : null;
+	if (listeners != null && listeners.size() > 0) {
+		// NOTE: because of the use of CopyOnWriteArrayList, we *must* use an iterator to
+		// perform the dispatching. The iterator is a safe guard against listeners that
+		// could mutate the list by calling the various add/remove methods. This prevents
+		// the array from being modified while we iterate it.
+		for (OnAttachStateChangeListener listener : listeners) {
+			listener.onViewDetachedFromWindow(this);
+		}
+	}
+
+	if ((mPrivateFlags & PFLAG_SCROLL_CONTAINER_ADDED) != 0) {
+		mAttachInfo.mScrollContainers.remove(this);
+		mPrivateFlags &= ~PFLAG_SCROLL_CONTAINER_ADDED;
+	}
+
+	mAttachInfo = null;
+	if (mOverlay != null) {
+		mOverlay.getOverlayView().dispatchDetachedFromWindow();
+	}
+
+	notifyEnterOrExitForAutoFillIfNeeded(false);
+}
+```
+
+因此，如果我们注册了相应的监听器，在detach之前没有进行清理的话，我们的监听器会被ViewRootImpl一直持有从而导致内存泄漏
+修复方案一般是在View#onDetachedFromWindow中执行相应的清理方法即可
