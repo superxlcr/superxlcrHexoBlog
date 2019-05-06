@@ -78,6 +78,6 @@ theme: hexo-theme-next-5.1.4
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git
-  repo: git@github.com:superxlcr/superxlcr.github.io.git
+  repo: https://github.com/superxlcr/superxlcr.github.io.git
   branch: master
   
