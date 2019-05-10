@@ -3,7 +3,7 @@ title: Android常见问题总结（八）
 tags: [android,基础知识]
 categories: [android]
 date: 2019-05-06 14:13:12
-description: Android全屏方式对比
+description: Android全屏方式对比，ListView的Header与Footer设置Visibility为Gone不起作用，ViewGroup没有调用onDraw方法
 ---
 上一篇博客传送门：[Android常见问题总结（七）](/2019/03/29/Android常见问题总结（七）/)
 
@@ -78,3 +78,137 @@ description: Android全屏方式对比
 ```
 
 主要需要注意的是跟软键盘弹出的一些交互问题
+
+# ListView的Header与Footer设置Visibility为Gone不起作用
+
+常用的ViewGroup，例如LinearLayout，在onMeasure方法内对每个child view执行measure前，会判断child view的visibility是否为gone。如果是gone，则不对这个child view执行measure操作，即这个child view的高度不被计算在linearLayout的高度里面。LinearLayout的measureVertical代码片段
+```java
+void measureVertical(int widthMeasureSpec, int heightMeasureSpec) {
+	...
+
+	// See how tall everyone is. Also remember max width.
+	for (int i = 0; i < count; ++i) {
+		final View child = getVirtualChildAt(i);
+		if (child == null) {
+			mTotalLength += measureNullChild(i);
+			continue;
+		}
+
+		if (child.getVisibility() == View.GONE) {
+		   i += getChildrenSkipCount(child, i);
+		   continue;
+		}
+
+		...
+
+		i += getChildrenSkipCount(child, i);
+	}
+
+	...
+}
+```
+
+view在measure自己时，并不会去判断自己的Visibility是GONE。这个逻辑操作如上述代码所示，是在parent view里面做的。所以当对LinearLayout里面的一个childView设置Visiblility为gone时，这个view不会被measure，最终也不会被显示出来。
+
+在使用ListView时，经常会添加一些headerView、footerView。但是当设置headerView、footerView的visibility为gone时，却发现headerView、footerView虽然没有显示出来，但垂直方向其所占的位置还是被显示出来了，从而出现了空白区域。网上查到的解决办法是：不能直接设置headerView、footerView的Visibility为gone。而是要**在HeaderView、FooterView外面包一层parent view**（FrameLayout RelativeLayout 都可以），并设置layout_height=“wrap_content”。然后对里面的childView设置visibility为GONE、VISIBLE都会生效。查看源码，情况确实如此。
+
+ListView的onMeasure里面，如果ListView的widthMode、heightMode有一个是unspecified时（应该对应于在XML中没有对listView设置layout_width、layout_height），会调用方法measureScrapChild。如果没有unspecified的情况，则会调用measureHeightOfChildren方法，而此方法内部也会调用measureScrapChild方法。查看measureScrapChild方法:
+
+```java
+private void measureScrapChild(View child, int position, int widthMeasureSpec, int heightHint) {
+	LayoutParams p = (LayoutParams) child.getLayoutParams();
+	if (p == null) {
+		p = (AbsListView.LayoutParams) generateDefaultLayoutParams();
+		child.setLayoutParams(p);
+	}
+	p.viewType = mAdapter.getItemViewType(position);
+	p.isEnabled = mAdapter.isEnabled(position);
+	p.forceAdd = true;
+
+	final int childWidthSpec = ViewGroup.getChildMeasureSpec(widthMeasureSpec,
+			mListPadding.left + mListPadding.right, p.width);
+	final int lpHeight = p.height;
+	final int childHeightSpec;
+	if (lpHeight > 0) {
+		childHeightSpec = MeasureSpec.makeMeasureSpec(lpHeight, MeasureSpec.EXACTLY);
+	} else {
+		childHeightSpec = MeasureSpec.makeSafeMeasureSpec(heightHint, MeasureSpec.UNSPECIFIED);
+	}
+	child.measure(childWidthSpec, childHeightSpec);
+
+	// Since this view was measured directly aginst the parent measure
+	// spec, we must measure it again before reuse.
+	child.forceLayout();
+}
+```
+
+可以看出，listview在对child view执行measure前，没有判断visibility为gone的情况。
+再看看里面的详细逻辑：
+- lpHeight>0时，说明在xml或者程序里面设置了一个确定的尺寸，这里没有问题
+- else里面，设置mode为UNSPECIFIED，就是让child view自己去决定大小，child view在measure自己时，不会考虑VISIBILITY属性
+
+如果外面包一层parent view（例如LinearLayout），并设置layout_height为wrap_content(按上面的分析，设置match_parent也是可以的），listView会调用调用额外的这个parent view的measure方法。而LinearLayout在measure时，会判断child view的visibility，如果为gone，则会返回0。最终这个额外的parent view返回给list view的尺寸就是0，从而解决了空白区域的问题
+
+# ViewGroup没有调用onDraw方法
+
+结论：经测试得知，在没有background背景的情况下，ViewGroup并不会执行onDraw绘制
+
+View#draw相关代码：
+```java
+@CallSuper
+public void draw(Canvas canvas) {
+	final int privateFlags = mPrivateFlags;
+	final boolean dirtyOpaque = (privateFlags & PFLAG_DIRTY_MASK) == PFLAG_DIRTY_OPAQUE &&
+			(mAttachInfo == null || !mAttachInfo.mIgnoreDirtyState);
+	mPrivateFlags = (privateFlags & ~PFLAG_DIRTY_MASK) | PFLAG_DRAWN;
+
+	/*
+	 * Draw traversal performs several drawing steps which must be executed
+	 * in the appropriate order:
+	 *
+	 *      1. Draw the background
+	 *      2. If necessary, save the canvas' layers to prepare for fading
+	 *      3. Draw view's content
+	 *      4. Draw children
+	 *      5. If necessary, draw the fading edges and restore layers
+	 *      6. Draw decorations (scrollbars for instance)
+	 */
+
+	// Step 1, draw the background, if needed
+	int saveCount;
+
+	if (!dirtyOpaque) {
+		drawBackground(canvas);
+	}
+
+	// skip step 2 & 5 if possible (common case)
+	final int viewFlags = mViewFlags;
+	boolean horizontalEdges = (viewFlags & FADING_EDGE_HORIZONTAL) != 0;
+	boolean verticalEdges = (viewFlags & FADING_EDGE_VERTICAL) != 0;
+	if (!verticalEdges && !horizontalEdges) {
+		// Step 3, draw the content
+		if (!dirtyOpaque) onDraw(canvas);
+
+		// Step 4, draw the children
+		dispatchDraw(canvas);
+
+		...
+
+		// we're done...
+		return;
+	}
+
+	...
+
+	// Step 3, draw the content
+	if (!dirtyOpaque) onDraw(canvas);
+
+	// Step 4, draw the children
+	dispatchDraw(canvas);
+
+	...
+}
+```
+
+可以看到想要执行onDraw，我们都需要变量dirtyOpaque为false（这个变量的具体逻辑没有追踪，大意应该是需要有内容进行绘制吧，所以我们需要添加一个背景）
+又或者我们可以**重写方法dispatchDraw**，这个是一定会执行的
