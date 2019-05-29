@@ -3,7 +3,7 @@ title: Android常见问题总结（八）
 tags: [android,基础知识]
 categories: [android]
 date: 2019-05-06 14:13:12
-description: Android全屏方式对比，ListView的Header与Footer设置Visibility为Gone不起作用，ViewGroup没有调用onDraw方法
+description: Android全屏方式对比，ListView的Header与Footer设置Visibility为Gone不起作用，ViewGroup没有调用onDraw方法，ViewPager获取当前显示的Fragment
 ---
 上一篇博客传送门：[Android常见问题总结（七）](/2019/03/29/Android常见问题总结（七）/)
 
@@ -212,3 +212,40 @@ public void draw(Canvas canvas) {
 
 可以看到想要执行onDraw，我们都需要变量dirtyOpaque为false（这个变量的具体逻辑没有追踪，大意应该是需要有内容进行绘制吧，所以我们需要添加一个背景）
 又或者我们可以**重写方法dispatchDraw**，这个是一定会执行的
+
+# ViewPager获取当前显示的Fragment
+
+最近博主使用到了ViewPager与Fragment这一经典的组合，在此记录一下如何在ViewPager中获取当前显示的Fragment
+
+## FragmentManager#findFragmentByTag
+
+当我们使用Viewpager + FragmentPagerAdapter的组合时，加载过的Fragment都会被保留，因此我们可以通过 FragmentManager#findFragmentByTag 来获取相应的 Fragment
+根据网上相关的资料以及翻看源码，我们可以使用 FragmentPagerAdapter#makeFragmentName 来获取相应的 tag (该方法是private的，我们可以拷贝出来使用)
+
+具体的源码如下所示：
+```java
+/**
+ * Return a unique identifier for the item at the given position.
+ *
+ * <p>The default implementation returns the given position.
+ * Subclasses should override this method if the positions of items can change.</p>
+ *
+ * @param position Position within this adapter
+ * @return Unique identifier for the item at position
+ */
+public long getItemId(int position) {
+	return position;
+}
+
+private static String makeFragmentName(int viewId, long id) {
+	return "android:switcher:" + viewId + ":" + id;
+}
+```
+
+PS：FragmentPagerAdapter#makeFragmentName 这个方法是 private 的，直接调用或者copy并不是非常保险，比较好的做法是把整个FragmentPagerAdapter都拷贝出去
+
+## 重写FragmentPagerAdapter#setPrimaryItem
+
+这个方法在每次viewpager滑动后都会被调用，而object参数就是显示的Fragment
+我们可以通过重写该方法，把object存到我们的成员变量中随时读取
+不过这种方式有一个缺陷，FragmentPagerAdapter#setPrimaryItem是在 viewpager的滑动监听执行完后才会调用的，因此我们在滑动监听中读取的当前Fragment是不正确的
