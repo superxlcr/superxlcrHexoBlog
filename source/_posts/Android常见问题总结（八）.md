@@ -3,7 +3,7 @@ title: Android常见问题总结（八）
 tags: [android,基础知识]
 categories: [android]
 date: 2019-05-06 14:13:12
-description: Android全屏方式对比，ListView的Header与Footer设置Visibility为Gone不起作用，ViewGroup没有调用onDraw方法，ViewPager获取当前显示的Fragment
+description: Android全屏方式对比，ListView的Header与Footer设置Visibility为Gone不起作用，ViewGroup没有调用onDraw方法，ViewPager获取当前显示的Fragment，Android 7.0 https 抓包问题
 ---
 上一篇博客传送门：[Android常见问题总结（七）](/2019/03/29/Android常见问题总结（七）/)
 
@@ -249,3 +249,36 @@ PS：FragmentPagerAdapter#makeFragmentName 这个方法是 private 的，直接�
 这个方法在每次viewpager滑动后都会被调用，而object参数就是显示的Fragment
 我们可以通过重写该方法，把object存到我们的成员变量中随时读取
 不过这种方式有一个缺陷，FragmentPagerAdapter#setPrimaryItem是在 viewpager的滑动监听执行完后才会调用的，因此我们在滑动监听中读取的当前Fragment是不正确的
+
+# Android 7.0 https 抓包问题
+
+当我们使用Fiddler或者Charles等工具，想要在Android手机上抓包https请求时，我们需要把他们的证书安装到手机上，让手机能与抓包工具正确建立https连接
+然而这个方式在Android 7.0 以上的版本却失效了，博主亲测像往常安装证书之后还是不能抓包https请求
+具体的原因可以参考官方的文档：
+https://developer.android.com/training/articles/security-config.html
+
+简单来说，就是因为官方的检验机制变得更加严格了，虽然我们安装了相应的用户证书，但应用仍然是不信任我们的证书的
+要解决这个问题，根据官方文档：
+1. 我们需要把我们的证书放置/res/raw目录下
+2. 我们需要在/res/xml新建一个network_security_config.xml，来配置证书
+3. 在AndroidManifest.xml上应用此配置
+
+network_security_config.xml：
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config>
+        <trust-anchors>
+            <certificates src="@raw/charles证书" />
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
+```
+
+AndroidManifest.xml：
+```xml
+<application
+        android:networkSecurityConfig="@xml/network_security_config"
+		...>
+```
