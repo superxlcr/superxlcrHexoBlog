@@ -60,5 +60,12 @@ git fetch --depth 50
 
 在多次拉取部分历史记录后，再使用unshallow拉取剩余历史记录，可以使得我们的仓库完全变成正常的样子
 
+值得注意的是，在使用了unshallow指令之后，虽然仓库变成了完整的，但是我们会发现只能拉取一个主分支相关的代码，并不能获取其他远程分支相关的代码，这个时候，我们还需要执行以下命令，把仓库的目标分支改为所有分支：
+```
+git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+```
+
+
 更多关于shallow clone的讨论可以参考：
+https://stackoverflow.com/questions/6802145/how-to-convert-a-git-shallow-clone-to-a-full-clone/17937889#17937889
 https://stackoverflow.com/questions/23708231/git-shallow-clone-clone-depth-misses-remote-branches
