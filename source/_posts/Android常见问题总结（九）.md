@@ -3,7 +3,7 @@ title: Android常见问题总结（九）
 tags: [android,基础知识]
 categories: [android]
 date: 2019-08-07 18:50:20
-description: addFooterView与setAdapter顺序问题
+description: addFooterView与setAdapter顺序问题、查看应用是否已安装
 ---
 
 上一篇博客传送门：[Android常见问题总结（八）](/2019/05/06/Android常见问题总结（八）/)
@@ -144,3 +144,46 @@ public void addFooterView(View v, Object data, boolean isSelectable) {
 
 我们可以看到，为什么4.4及其以上版本就允许addFooterView在setAdapter以后调用，关键的地方在于第27行，发现如果此时mAdapter不为HeaderViewListAdapter，则会将其包装为HeaderViewListAdapter
 因此，在4.4及其以上版本，我们并不需要关心setAdapter与addFooterView的调用顺序（headerView同理）
+
+# 查看应用是否已安装
+
+最近博主遇到一个需求，需要查看应用是否已安装
+经过一番查找后，找到了如下方案：
+```java
+    public static boolean isInstallApp(String appPackage) {
+        try {
+            PackageManager manager = KGCommonApplication.getContext().getPackageManager();
+            List<PackageInfo> pkgList = manager.getInstalledPackages(0);
+            for (int i = 0; i < pkgList.size(); i++) {
+                PackageInfo pI = pkgList.get(i);
+                if (pI.packageName.equalsIgnoreCase(appPackage))
+                    return true;
+            }
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+```
+
+原理是使用 android.content.pm.PackageManager#getInstalledPackages 方法，获取所有已安装的apk，然后从返回的列表中，查找是否包含特定包名来判断特定应用是否安装
+然而，该方案在高版本的Android中，也许是因为系统权限的限制，我们并不能拿到所有的已安装应用
+在没有权限的情况下，该方法只返回了部分系统的应用
+
+因此再通过一番查到，博主找到了一个新的方案：
+```java
+    public static boolean isInstallApp(String appPackage) {
+        try {
+            PackageManager manager = KGCommonApplication.getContext().getPackageManager();
+            PackageInfo info = manager.getPackageInfo(appPackage, PackageManager.GET_ACTIVITIES);
+            return info != null;
+        } catch (Exception e) {
+            // ignore
+        }
+        return false;
+    }
+```
+
+通过 android.content.pm.PackageManager#getPackageInfo(java.lang.String, int) 方法，我们可以获取特定的应用信息，如果用户并没有安装该应用，则会抛出 NameNotFoundException 异常
+由于该方法没有系统权限的限制，所以我们可以放心使用
