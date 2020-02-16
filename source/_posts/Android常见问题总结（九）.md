@@ -3,7 +3,7 @@ title: Android常见问题总结（九）
 tags: [android,基础知识]
 categories: [android]
 date: 2019-08-07 18:50:20
-description: addFooterView与setAdapter顺序问题、查看应用是否已安装
+description: addFooterView与setAdapter顺序问题、查看应用是否已安装、gradle 插件版本号与gradle 版本号对应关系、处理安装出现INSTALL_FAILED_TEST_ONLY错误
 ---
 
 上一篇博客传送门：[Android常见问题总结（八）](/2019/05/06/Android常见问题总结（八）/)
@@ -187,3 +187,49 @@ public void addFooterView(View v, Object data, boolean isSelectable) {
 
 通过 android.content.pm.PackageManager#getPackageInfo(java.lang.String, int) 方法，我们可以获取特定的应用信息，如果用户并没有安装该应用，则会抛出 NameNotFoundException 异常
 由于该方法没有系统权限的限制，所以我们可以放心使用
+
+# gradle 插件版本号与gradle 版本号对应关系
+
+gradle 插件版本号：指build.gradle文件里，classpath ‘com.android.tools.build:gradle:3.1.2’，应用的插件的版本号
+gradle 版本号：指“gradle-wrapper.properties”中，配置的gradle 的版本号
+
+其中，gradle 插件的版本号和 gradle 的版本号是有关联的，关系如下：
+
+| 插件版本号 | gradle版本号 |
+| - | - |
+| 1.0.0 - 1.1.3 | 2.2.1 - 2.3 |
+| 1.2.0 - 1.3.1 | 2.2.1 - 2.9 |
+| 1.5.0 | 2.2.1 - 2.13 |
+| 2.0.0 -2.1.2 | 2.10 - 2.13 |
+| 2.1.3 - 2.2.3 | 2.14.1+ |
+| 2.3.0+ | 3.3+ |
+| 3.0.0+ | 4.1+ |
+| 3.1.0+ | 4.4+ |
+| 3.2.0 - 3.2.1 | 4.6+ |
+| 3.3.0 - 3.3.2 | 4.10.1+ |
+| 3.4.0 - 3.4.1 | 5.1.1+ |
+| 3.5.0+ | 5.4.1 - 5.6.4 |
+
+详细gradle插件版本与gradle版本更新日志如下：
+
+https://developer.android.google.cn/studio/releases/gradle-plugin#updating-plugin
+
+# 处理安装出现INSTALL_FAILED_TEST_ONLY错误
+
+某次在本地debug模式编译打包apk后，通过adb install指令发现竟然无法正常安装，提示了INSTALL_FAILED_TEST_ONLY错误
+在网上查询资料后发现，原来是Android Studio 3.0会在debug类型apk的manifest文件application标签里自动添加 android:testOnly="true"属性
+
+官方文档如下：
+https://developer.android.google.cn/guide/topics/manifest/application-element#testOnly
+
+解决方案有两个：
+
+我们可以在项目中的gradle.properties全局配置中设置：
+```
+android.injected.testOnly=false
+```
+
+除此以外，我们还可以安装apk时，增加上-t的参数：
+```
+adb install -t app-debug.apk
+```
