@@ -3,7 +3,7 @@ title: Android常见问题总结（九）
 tags: [android,基础知识]
 categories: [android]
 date: 2019-08-07 18:50:20
-description: addFooterView与setAdapter顺序问题、查看应用是否已安装、gradle 插件版本号与gradle 版本号对应关系、处理安装出现INSTALL_FAILED_TEST_ONLY错误
+description: addFooterView与setAdapter顺序问题、查看应用是否已安装、gradle 插件版本号与gradle 版本号对应关系、处理安装出现INSTALL_FAILED_TEST_ONLY错误、Activity启动流程图总结
 ---
 
 上一篇博客传送门：[Android常见问题总结（八）](/2019/05/06/Android常见问题总结（八）/)
@@ -233,3 +233,19 @@ android.injected.testOnly=false
 ```
 adb install -t app-debug.apk
 ```
+
+# Activity启动流程图总结
+
+Activity启动流程图如下所示：
+![Activity启动流程图](1.jpg)
+
+流程主要分为以下几步：
+1. 当前Activity把需要启动的目标Activity相关信息包装成Intent的形式，发送给ActivityManagerService(AMS)
+2. AMS检验信息合法后，保存信息，并通知当前Activity进入中止状态（onPaused），并通过Handler监控是否超时
+3. 当前Activity进入中止状态后，通知AMS
+4. AMS检查目标Activity在Manifest中设定启动的进程启动了没有，如果进程没有启动，则启动进程（也通过Handler计算超时），有则跳到第7步
+5. AMS通知zygote进程fork一个子进程，以ActivityThread的main函数作为进程执行入口
+6. 新进程初始化Handler消息循环机制，初始化Application，完成启动工作后，发送ApplicationThread给AMS（以后AMS就通过ApplicationThread找到这个进程）
+7. AMS通过进程启动后传回的ApplicationThread找到进程，发送命令启动目标Activity，同时开始Handler计算超时
+8. 目标进程接到IPC指令后，通过消息循环机制，在主线程中反射实例化Activity，并执行Activity的生命周期，完成后通知AMS
+9. AMS收到Activity启动的消息后，Activity启动流程结束
