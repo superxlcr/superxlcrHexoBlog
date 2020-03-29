@@ -97,6 +97,8 @@ PS：值得注意的是，根据网上查到的一些资料说，删除一个jav
 - 在jar包中的资源文件，需要我们定义处理类型为 TransformManager.CONTENT_RESOURCES 才返回
 - 而在我们编译主module下的文件，即在Transform中以dir文件夹输入的资源文件，则是定义处理类型为 TransformManager.CONTENT_CLASS 才返回
 
+因此博主定义的处理文件类型为：TransformManager.CONTENT_JARS，表示class与jar的集合
+
 其中具体的处理逻辑跟处理class文件没有什么特别大的区别，只是获取输出文件的地址时把contentTypes定义为资源类型即可
 
 比较疑惑，在此先记录一下
