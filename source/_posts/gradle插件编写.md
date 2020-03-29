@@ -190,3 +190,40 @@ buildscript {
     }
 }
 ```
+
+ps: 除了使用 maven 插件来上传以外，我们还可以通过 maven-publish 插件来把代码上传到本地仓库
+
+具体配置大致如下所示：
+```
+apply plugin: 'maven-publish'  // 添加插件
+
+// 打包源码
+task sourceJar(type: Jar) {
+    from sourceSets.main.allJava
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            // 指定group/artifact/version信息
+            groupId project.group
+            artifactId project.name
+            version project.version
+            // 打包类型 war: components.web jar: components.java
+            from components.java
+
+            // 配置上传源码
+            artifact sourceJar {
+                classifier "sources"
+            }
+
+        }
+    }
+    repositories {
+        mavenLocal() // 本地 maven
+    }
+}
+
+```
+
+配置完成后，执行publishToLocalMaven任务即可，发布位置应该在：用户文件夹/.m2/ 里
