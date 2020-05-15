@@ -3,7 +3,7 @@ title: gradle插件编写（二）
 tags: [gradle]
 categories: [gradle]
 date: 2020-03-29 12:17:45
-description: Transform执行顺序、buildSrc放置本地插件代码、Transform增量编译、Transform处理一些非.class文件
+description: Transform执行顺序、buildSrc放置本地插件代码、Transform增量编译、Transform处理一些非.class文件、使用gradle插件的方式
 ---
 
 上一篇博客可见：[gradle插件编写](2018/09/06/gradle插件编写/)
@@ -102,3 +102,19 @@ PS：值得注意的是，根据网上查到的一些资料说，删除一个jav
 其中具体的处理逻辑跟处理class文件没有什么特别大的区别，只是获取输出文件的地址时把contentTypes定义为资源类型即可
 
 比较疑惑，在此先记录一下
+
+# 使用gradle插件的方式
+
+在编写完gradle插件后，我们可以通过以下几种方式来应用插件：
+
+```
+apply from: 'xxx.gradle'
+```
+上面这种方式用来应用写在.gradle文件的脚本插件
+
+```
+apply plugin: ClassName
+apply plugin:'pluginid'
+```
+上面这种方式用来应用继承自Plugin基类的对象插件
+这类插件可能存放在远程的仓库中，也有可能存放在buildSrc的module下
