@@ -3,7 +3,7 @@ title: 关于一些基础的Java问题的解答（十）
 tags: [java,基础知识]
 categories: [java]
 date: 2019-05-06 11:18:10
-description: 偏向所锁，轻量级锁及重量级锁、线程池线程数如何确定
+description: 偏向所锁、轻量级锁及重量级锁、线程池线程数如何确定、反射创建对象 与 new 创建对象区别
 ---
 上一篇文章的传送门：[关于一些基础的Java问题的解答（九）](/2017/08/10/关于一些基础的Java问题的解答（九）/)
 
@@ -46,3 +46,19 @@ Java的线程池相信大家都不陌生，为了方便线程管理与复用，�
 参考资料：
 https://www.cnblogs.com/dennyzhangdd/p/6909771.html?utm_source=itdadao&utm_medium=referral
 https://blog.csdn.net/varyall/article/details/79583036?utm_source=blogxgwz8
+
+# 反射创建对象 与 new 创建对象区别
+
+在java中，我们既可以通过new来直接创建一个对象，也可以通过反射的api，使用Class.forName().newInstance()来创建对象
+那么这两者有何区别呢？
+
+当我们通过new来创建对象时，在编译期间内，对于我们创建对象的类型以及调用的构造函数方法，都是明确可知的
+因此这种方式创建对象会更快，而且JVM也会针对这种情况执行一系列的优化
+
+当我们通过Class.forName().newInstance()来创建对象时，我们相当于使用了一种动态的方式来创建对象
+这种创建对象的方式会更慢，因为这时创建的对象类型并不是明确的，是不能硬编码到字节码中的
+并且JVM可能还需要进行权限的校验，确保执行的代码是否能调用构造函数创建对象
+并且JVM还需要对调用的构造函数进行检查，确保拥有跟我们参数匹配的构造函数
+
+综上所述，反射创建对象 慢于 new 创建对象
+
