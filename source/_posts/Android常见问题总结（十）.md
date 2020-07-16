@@ -3,7 +3,7 @@ title: Android常见问题总结（十）
 tags: [android,基础知识]
 categories: [android]
 date: 2020-03-28 22:31:32
-description: Android Studio Build Output输出栏内汉字出现乱码的解决方案、Android Studio 正则表达式分组替换信息
+description: Android Studio Build Output输出栏内汉字出现乱码的解决方案、Android Studio 正则表达式分组替换信息、aar库依赖项打包问题
 ---
 
 上一篇博客传送门：[Android常见问题总结（九）](/2019/08/07/Android常见问题总结（九）/)
@@ -49,3 +49,27 @@ creator is lmr !!
 ```
 
 PS：$0 表示的是匹配的整个字符串变量
+
+# aar库依赖项打包问题
+
+当我们在打包aar时，会发现其实打包进aar里面的代码只有我们源码编译出来的产物（或者是以文件形式依赖的jar库等）
+我们再gradle中声明的各种依赖并没有打进aar中，那么当我们使用打包出来的aar的时候，为什么不会出现运行错误呢？
+
+在经过一番搜索后，找到了相关的资料：
+https://stackoverflow.com/questions/51310920/transitive-aar-dependencies
+
+经过了解，其实aar只会打包自己源码的东西，我们aar所依赖的项都是由maven来进行管理维护的
+当我们发布aar的时候，会生成相应的pom文件，来描述我们这个aar的属性以及他所需要的依赖的库
+当我们使用发布的aar的时候，maven以及gradle会根据这个pom文件把相应的依赖给补全，这就是传递依赖的场景
+
+当我们不需要使用传递依赖时，我们在gradle中可以通过exclude方法或者transitive属性来控制：
+
+```
+implementation (xxx) {
+	exclude (group : "xxx", module : "xxx")
+}
+
+implementation (xxx) {
+	transitive = false
+}
+```

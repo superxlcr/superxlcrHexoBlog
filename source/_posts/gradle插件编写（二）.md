@@ -6,7 +6,7 @@ date: 2020-03-29 12:17:45
 description: Transform执行顺序、buildSrc放置本地插件代码、Transform增量编译、Transform处理一些非.class文件、使用gradle插件的方式
 ---
 
-上一篇博客可见：[gradle插件编写](2018/09/06/gradle插件编写/)
+上一篇博客可见：[gradle插件编写](/2018/09/06/gradle插件编写/)
 
 博主最近有在编写gradle相关的插件，总结了一些新的相关问题，在此记录一下
 
