@@ -3,7 +3,7 @@ title: Android常见问题总结（十）
 tags: [android,基础知识]
 categories: [android]
 date: 2020-03-28 22:31:32
-description: Android Studio Build Output输出栏内汉字出现乱码的解决方案、Android Studio 正则表达式分组替换信息、aar库依赖项打包问题
+description: Android Studio Build Output输出栏内汉字出现乱码的解决方案、Android Studio 正则表达式分组替换信息、aar库依赖项打包问题、下载AndroidSDKtools目录
 ---
 
 上一篇博客传送门：[Android常见问题总结（九）](/2019/08/07/Android常见问题总结（九）/)
@@ -73,3 +73,13 @@ implementation (xxx) {
 	transitive = false
 }
 ```
+
+# 下载AndroidSDKtools目录
+
+在Android的SDK下的tools目录中，存放着一些开发相关的工具，比如博主经常使用的monitor（里面包含一大堆工具，虽然新版AS也有，但总感觉不好用，尤其是界面dump工具）
+不过貌似在AS 3.0及以上，官方默认下载SDK时就不下载这套工具了
+
+博主经过网上搜索了一番后，找到了相关的资料来下载：
+https://stackoverflow.com/questions/28789556/android-studio-sdk-tools-directory-is-missing/61040516#61040516
+
+其实就是因为被标记废弃，所以被隐藏起来了，只要去掉勾选隐藏废弃package就能找到Android SDK Tools
